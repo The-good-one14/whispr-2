@@ -13,4 +13,4 @@ Whispr is a chat/communications software I make/made because I am fed up with ev
 - [ ] the option for absolutely ZERO data collection except for your account info (e.g. username/password/etc) (NOTE: this will impact user-friendlyness such as no chat history)
 - [ ] more coming
 
-And also, I will use AI STRICTLY for brainstorming on how to improve and NEVER in the writing of code or related tasks.
+And also, I will use AI STRICTLY for brainstorming on how to improve and NEVER in the writing of code or similar tasks.
