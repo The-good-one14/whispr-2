@@ -14,4 +14,4 @@ Whispr is a chat/communications software I make/made because I am fed up with ev
 - [ ] The ability to launch your own physical servers, and with that a clone of whispr for private use.
 - [ ] More coming
 
-And also, I will use AI STRICTLY for brainstorming on how to improve and NEVER in the writing of code or similar tasks, which was one of the primary reasons I abandoned whispr-chat v1.
+And also, all the source code will *never* be generated using Articial Intelligence, and is strictly kept to a minimum for brainstorming.
