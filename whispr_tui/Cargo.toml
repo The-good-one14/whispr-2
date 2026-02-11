@@ -1,7 +1,6 @@
 [package]
-name = "whispr-tui"
+name = "whispr_tui"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-whispr-core = "0.1.0"

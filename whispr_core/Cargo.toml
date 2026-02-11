@@ -1,6 +1,8 @@
 [package]
-name = "whispr-core"
+name = "whispr_core"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+ed25519-dalek = "2"
+rand = "0.10.0"
