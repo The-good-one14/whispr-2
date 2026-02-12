@@ -1,10 +1,7 @@
-use rand::{RngCore, rngs::OsRng};
-use ed25519_dalek::{SigningKey, VerifyingKey, Verifier, Signature, Signer};
-use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
 use sha2::{Sha256, Digest};
 use hkdf::Hkdf;
 use crate::errors::LibError;
-use chacha20_poly1305;
+
 
 pub fn hash(data: &[u8]) -> [u8;32] {
     Sha256::digest(data).into()
@@ -13,12 +10,13 @@ pub fn hash(data: &[u8]) -> [u8;32] {
 pub fn derive_key(secret: &[u8], label: &[u8], salt: Option<&[u8]>) -> Result<[u8;32],LibError> {
     let kdf = Hkdf::<Sha256>::new(salt, secret);
     let mut output = [0u8;32];
-    kdf.expand(label, &mut output).map_err(|_| LibError::KeyLengthError)?;
+    kdf.expand(label, &mut output).map_err(|_| LibError::KeyLengthError(None))?;
     Ok(output)
 }
 
 pub mod ed25519 {
-    use super::*;
+    use ed25519_dalek::{SigningKey, VerifyingKey, Verifier, Signature, Signer};
+    use rand::rngs::OsRng;
 
     pub fn generate() -> (SigningKey, VerifyingKey) {
         let mut random = OsRng;
@@ -37,7 +35,9 @@ pub mod ed25519 {
 }
 
 pub mod x25519 {
-    use super::*;
+    use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
+    use rand::rngs::OsRng;
+
     pub fn generate_ephemeral() -> (EphemeralSecret, PublicKey) {
         let random = OsRng;
         let secret = EphemeralSecret::random_from_rng(random);
@@ -50,15 +50,23 @@ pub mod x25519 {
 }
 
 pub mod crypt {
-    use super::*;
+    use chacha20poly1305::{ChaCha20Poly1305, ChaChaPoly1305, Key, KeyInit, Nonce, aead::Aead};
+    use rand::{RngCore, rngs::OsRng};
+    use crate::errors::LibError;
 
-    fn nonce() -> [u8;12] {
+    pub fn generate_nonce() -> Result<[u8;12], LibError> {
         let mut nonce = [0u8;12];
-        OsRng.try_fill_bytes(&mut nonce).unwrap();
-        nonce
+        OsRng.try_fill_bytes(&mut nonce).map_err(|_| LibError::RandomNumberError)?;
+        Ok(nonce)
     }
-    pub fn seal(data: &[u8], key: &[u8]) -> Vec<u8> {
-        let nonce: [u8; 12] = nonce();
-        Vec::new()
+    pub fn seal(data: &[u8], kdf_key: &[u8;32], nonce: &[u8;12]) -> Result<Vec<u8>, LibError> {
+
+        let nonce = Nonce::from_slice(nonce);
+        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).encrypt(nonce, data).map_err(|_| LibError::NonceError(None))
+    }
+    pub fn open(data: &[u8], kdf_key: &[u8;32], nonce: &[u8;12]) -> Result<Vec<u8>, LibError> {
+
+        let nonce = Nonce::from_slice(nonce);
+        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).decrypt(nonce, data).map_err(|_| LibError::DecryptionError(None))
     }
 }
