@@ -1,3 +1,7 @@
 pub enum LibError {
-    KeyLengthError, 
+    KeyLengthError(Option<String>),
+    EncryptionError(Option<String>),
+    DecryptionError(Option<String>),
+    NonceError(Option<String>),
+    RandomNumberError,
 }
