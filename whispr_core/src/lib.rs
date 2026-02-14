@@ -1,3 +1,3 @@
 mod cryptography;
-mod errors;
 mod models;
+mod protocols;

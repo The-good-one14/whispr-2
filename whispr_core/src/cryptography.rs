@@ -1,6 +1,6 @@
 use sha2::{Sha256, Digest};
 use hkdf::Hkdf;
-use crate::errors::LibError;
+use crate::models::LibError;
 
 
 pub fn hash(data: &[u8]) -> [u8;32] {
@@ -10,7 +10,7 @@ pub fn hash(data: &[u8]) -> [u8;32] {
 pub fn derive_key(secret: &[u8], label: &[u8], salt: Option<&[u8]>) -> Result<[u8;32],LibError> {
     let kdf = Hkdf::<Sha256>::new(salt, secret);
     let mut output = [0u8;32];
-    kdf.expand(label, &mut output).map_err(|_| LibError::KeyLengthError(None))?;
+    kdf.expand(label, &mut output).map_err(|e| LibError::KeyLengthError(Some(e.to_string())))?;
     Ok(output)
 }
 
@@ -52,7 +52,7 @@ pub mod x25519 {
 pub mod crypt {
     use chacha20poly1305::{ChaCha20Poly1305, ChaChaPoly1305, Key, KeyInit, Nonce, aead::Aead};
     use rand::{RngCore, rngs::OsRng};
-    use crate::errors::LibError;
+    use crate::models::LibError;
 
     pub fn generate_nonce() -> Result<[u8;12], LibError> {
         let mut nonce = [0u8;12];
@@ -62,11 +62,11 @@ pub mod crypt {
     pub fn seal(data: &[u8], kdf_key: &[u8;32], nonce: &[u8;12]) -> Result<Vec<u8>, LibError> {
 
         let nonce = Nonce::from_slice(nonce);
-        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).encrypt(nonce, data).map_err(|_| LibError::NonceError(None))
+        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).encrypt(nonce, data).map_err(|e| LibError::NonceError(Some(e.to_string())))
     }
     pub fn open(data: &[u8], kdf_key: &[u8;32], nonce: &[u8;12]) -> Result<Vec<u8>, LibError> {
 
         let nonce = Nonce::from_slice(nonce);
-        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).decrypt(nonce, data).map_err(|_| LibError::DecryptionError(None))
+        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).decrypt(nonce, data).map_err(|e| LibError::DecryptionError(Some(e.to_string())))
     }
 }
