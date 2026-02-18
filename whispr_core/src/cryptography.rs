@@ -18,11 +18,15 @@ pub mod ed25519 {
     use ed25519_dalek::{SigningKey, VerifyingKey, Verifier, Signature, Signer};
     use rand::rngs::OsRng;
 
-    pub fn generate() -> (SigningKey, VerifyingKey) {
+    pub fn generate_new_pair() -> (SigningKey, VerifyingKey) {
         let mut random = OsRng;
         let signing_key: SigningKey = SigningKey::generate(&mut random);
         let verifying_key: VerifyingKey = signing_key.verifying_key();
         (signing_key, verifying_key)
+    }
+
+    pub fn get_public(signing_key: &SigningKey) -> VerifyingKey {
+        signing_key.verifying_key()
     }
 
     pub fn sign_data(data: &[u8], signing_key: &SigningKey) -> Signature {
@@ -38,11 +42,18 @@ pub mod x25519 {
     use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
     use rand::rngs::OsRng;
 
-    pub fn generate_ephemeral() -> (EphemeralSecret, PublicKey) {
+    use crate::models::Session;
+
+    pub fn generate_ephemeral() -> Session {
         let random = OsRng;
         let secret = EphemeralSecret::random_from_rng(random);
         let public = PublicKey::from(&secret);
-        (secret, public)
+        
+        Session {
+            secret: secret,
+            public: public,
+            shared: None,
+        }
     }
     pub fn generate_shared(secret: EphemeralSecret, public: &PublicKey) -> SharedSecret {
         secret.diffie_hellman(&public)
@@ -50,7 +61,7 @@ pub mod x25519 {
 }
 
 pub mod crypt {
-    use chacha20poly1305::{ChaCha20Poly1305, ChaChaPoly1305, Key, KeyInit, Nonce, aead::Aead};
+    use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, Nonce, aead::Aead};
     use rand::{RngCore, rngs::OsRng};
     use crate::models::LibError;
 
