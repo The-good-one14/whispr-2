@@ -1,9 +1,8 @@
-use ed25519_dalek::{Signature, SigningKey, VerifyingKey};
-use sha2::Sha224;
-use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
+use ed25519_dalek::{SigningKey, VerifyingKey};
+use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret, StaticSecret};
 
 pub mod constants {
-    pub const MESSAGE_LABEL: &[u8;23] = b"Whispr-message-label v1";
+    pub const ENCRYPTION_LABEL: [u8;26] = *b"Whispr-x25519-key-label v1";
 }
 
 pub enum LibError {
@@ -12,10 +11,15 @@ pub enum LibError {
     DecryptionError(Option<String>),
     NonceError(Option<String>),
     SerializationError(Option<String>),
-    NoSharedSecretError,
-    RandomNumberError
+    DeserializationError(Option<String>),
+    RandomNumberError,
+    BadSignature
 }
 
+pub enum SecretKeyType {
+    EphemeralSecret(EphemeralSecret),
+    StaticSecret(StaticSecret)
+}
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Message {
     pub sender_hash: [u8;32],
@@ -26,7 +30,7 @@ pub struct Message {
 }
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Envelope {
-    pub message: Message,
+    pub message: Vec<u8>,
     #[serde(with = "serde_bytes")]
     pub signature: [u8;64]
 }
@@ -34,11 +38,12 @@ pub struct Envelope {
 pub struct Identity {
     pub private: SigningKey,
     pub public: VerifyingKey,
-    pub fingerprint: [u8;32]
+    pub fingerprint: [u8;32],
+    pub x25519_private: StaticSecret,
+    pub x25519_public: PublicKey
 }
 
 pub struct Session {
     pub secret: EphemeralSecret,
     pub public: PublicKey,
-    pub shared: Option<SharedSecret>
 }

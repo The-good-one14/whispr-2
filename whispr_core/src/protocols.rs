@@ -1,23 +1,46 @@
-use crate::{cryptography::{ed25519::{sign_data, get_public}, crypt::{generate_nonce, seal, open}, hash, derive_key}};
-use crate::models::{Envelope, Identity, Message, Session, LibError, constants::{MESSAGE_LABEL}};
-use chacha20poly1305::{Key, Nonce};
-use ed25519_dalek::SigningKey;
+use crate::{cryptography::{crypt::{generate_nonce, open, seal}, derive_key, ed25519::{get_public, sign_data, verify_data}, hash, x25519::{generate_ephemeral, generate_shared, generate_static}}};
+use crate::models::{Envelope, Identity, Message, Session, LibError, SecretKeyType, constants::ENCRYPTION_LABEL};
+use ed25519_dalek::{Signature, SigningKey, VerifyingKey};
+use x25519_dalek::{PublicKey, StaticSecret};
 
-pub fn get_identity(private: SigningKey) -> Identity {
-    Identity {
+pub fn get_identity(private: SigningKey) -> Result<Identity, LibError> {
+    let static_keys: (StaticSecret, PublicKey) = generate_static(derive_key(private.as_bytes(), &ENCRYPTION_LABEL, None)?);
+    Ok(Identity {
         fingerprint: hash(private.as_bytes()),
         public: get_public(&private),
+        x25519_private: static_keys.0,
+        x25519_public: static_keys.1,
         private
-    }
+    })
 }
 
-pub fn seal_n_sign(message: Message, identity: Identity, session: Session, nonce: [u8;12]) -> Result<Envelope, LibError> {
-    if session.shared.is_none() {
-        return Err(LibError::NoSharedSecretError);
+pub fn seal_n_sign(message: &[u8], reciever: [u8;32], identity: Identity, publickey: &PublicKey) -> Result<Envelope, LibError> {
+    let session: Session = generate_ephemeral();
+    let shared = generate_shared(crate::models::SecretKeyType::EphemeralSecret(session.secret), publickey);
+    let key: [u8;32] = derive_key(shared.as_bytes(), &ENCRYPTION_LABEL, None)?;
+    let nonce = generate_nonce()?;
+    let sealed_payload = seal(&message, &key, &nonce)?;
+    let sealed_message: Message = Message {
+        sender_hash: identity.fingerprint,
+        reciever_hash: reciever,
+        public_key: session.public.to_bytes(),
+        nonce,
+        payload: sealed_payload
+    };
+    let sealed_message_bytes: Vec<u8> = postcard::to_stdvec(&sealed_message).map_err(|e| LibError::SerializationError(Some(e.to_string())))?;
+    let signature: [u8; 64] = sign_data(&sealed_message_bytes, &identity.private).to_bytes();
+    Ok(Envelope {
+        message: sealed_message_bytes,
+        signature
+    })
+}
+
+pub fn open_n_verify(envelope: Envelope, identity: &Identity, public_key: &VerifyingKey) -> Result<Vec<u8>, LibError> {
+    if !verify_data(&envelope.message, &Signature::from_bytes(&envelope.signature), &public_key) {
+        return Err(LibError::BadSignature);
     }
-    let key = derive_key(session.shared.unwrap().as_bytes(), MESSAGE_LABEL, None)?;
-    let message_bytes = postcard::to_stdvec(&message).map_err(|e| LibError::SerializationError(Some(e.to_string())))?;
-    let message_bytes = seal(&message_bytes, &key, &nonce)?;
-    let signature = sign_data(&message_bytes, &identity.private);
-    
+    let message: Message = postcard::from_bytes(&envelope.message).map_err(|e| LibError::DecryptionError(Some(e.to_string())))?;
+    let key: [u8; 32] = derive_key(generate_shared(SecretKeyType::StaticSecret(identity.x25519_private.clone()), &PublicKey::from(message.public_key)).as_bytes(), &ENCRYPTION_LABEL, None)?;
+    Ok(open(&message.payload, &key, &message.nonce)?)
+
 }

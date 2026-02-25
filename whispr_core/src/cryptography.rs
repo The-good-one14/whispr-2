@@ -39,10 +39,10 @@ pub mod ed25519 {
 }
 
 pub mod x25519 {
-    use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
+    use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret, StaticSecret};
     use rand::rngs::OsRng;
-
     use crate::models::Session;
+    use crate::models::SecretKeyType;
 
     pub fn generate_ephemeral() -> Session {
         let random = OsRng;
@@ -52,11 +52,18 @@ pub mod x25519 {
         Session {
             secret: secret,
             public: public,
-            shared: None,
         }
     }
-    pub fn generate_shared(secret: EphemeralSecret, public: &PublicKey) -> SharedSecret {
-        secret.diffie_hellman(&public)
+    pub fn generate_static(key: [u8;32]) -> (StaticSecret, PublicKey) {
+        let secret: StaticSecret = StaticSecret::from(key);
+        let public: PublicKey = PublicKey::from(&secret);
+        (secret, public)
+    }
+    pub fn generate_shared(secret: SecretKeyType, public: &PublicKey) -> SharedSecret {
+        match secret {
+            SecretKeyType::EphemeralSecret(secret) => secret.diffie_hellman(public),
+            SecretKeyType::StaticSecret(secret) => secret.diffie_hellman(public)
+        }
     }
 }
 
