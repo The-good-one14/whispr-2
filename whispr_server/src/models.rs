@@ -1,0 +1,1 @@
+pub const MAX_PACKAGE_SIZE: usize = 2147483648; // 2GiB

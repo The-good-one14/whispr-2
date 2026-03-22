@@ -1,4 +1,5 @@
-use whispr_core::*;
+mod models;
+
 fn main() {
     
 }
