@@ -12,8 +12,14 @@ pub enum LibError {
     NonceError(Option<String>),
     SerializationError(Option<String>),
     DeserializationError(Option<String>),
+    WebSocketError(Option<String>),
     RandomNumberError,
     BadSignature
+}
+
+pub enum ServerMessage {
+    Identify([u8;32])
+
 }
 
 pub enum SecretKeyType {
