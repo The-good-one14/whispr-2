@@ -1,5 +1,5 @@
 use ed25519_dalek::{SigningKey, VerifyingKey};
-use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret, StaticSecret};
+use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 
 pub mod constants {
     pub const ENCRYPTION_LABEL: [u8;26] = *b"Whispr-x25519-key-label v1";
