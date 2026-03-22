@@ -4,5 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+whispr_core = { workspace = true }
+postcard = { workspace= true }
+serde = { workspace = true }
 tokio = { version = "1.49.0", features = ["full"] }
 tokio-tungstenite = "0.28.0"

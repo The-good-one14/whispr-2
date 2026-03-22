@@ -1,3 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["whispr_core", "whispr_server", "whispr_tui"]
+
+[workspace.dependencies]
+postcard = { version = "1.0", features = ["use-std"] }
+serde = { version = "1.0.228", features = ["derive"] }
+whispr_core = { path = "./whispr_core" }
