@@ -1,27 +1,39 @@
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
+use thiserror::Error;
 
 pub mod constants {
-    pub const ENCRYPTION_LABEL: [u8;26] = *b"Whispr-x25519-key-label v1";
+    pub const ENCRYPTION_LABEL: &[u8] = b"Whispr-x25519-key-label v1";
 }
-
+#[derive(Error, Debug)]
 pub enum LibError {
-    KeyLengthError(Option<String>),
-    EncryptionError(Option<String>),
-    DecryptionError(Option<String>),
-    NonceError(Option<String>),
-    SerializationError(Option<String>),
-    DeserializationError(Option<String>),
-    WebSocketError(Option<String>),
+    #[error("Cryptographic key lenth was invalid: {0}")]
+    KeyLengthError(String),
+    #[error("Encryption failed: {0}")]
+    EncryptionError(String),
+    #[error("Decryption failed: {0}")]
+    DecryptionError(String),
+    #[error("Serialization failed: {0}")]
+    SerializationError(String),
+    #[error("Deserialization failed: {0}")]
+    DeserializationError(String),
+    #[error("Websocket failed: {0}")]
+    WebSocketError(String),
+    #[error("Client identity was invalid")]
+    InvalidIdentity,
+    #[error("Random number error")]
     RandomNumberError,
-    BadSignature
+    #[error("Message had a bad signature")]
+    BadSignature,
+    #[error("Unknown error: {0}")]
+    UnknownError(String)
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum ServerMessage {
-    Identify([u8;32])
-
+    Identify([u8;32]),
+    Message(Envelope)
 }
-
 pub enum SecretKeyType {
     EphemeralSecret(EphemeralSecret),
     StaticSecret(StaticSecret)

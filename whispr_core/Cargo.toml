@@ -13,3 +13,4 @@ serde = { workspace = true }
 serde_bytes = "0.11.19"
 sha2 = "0.10.9"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"]}
+thiserror = "2.0.18"
