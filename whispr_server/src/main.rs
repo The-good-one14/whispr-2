@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tokio::{io::unix::AsyncFd, net::TcpListener};
+use tokio::{net::TcpListener};
 
 mod models;
 mod state;
@@ -18,17 +18,17 @@ async fn main() {
 
     loop {
         match listener.accept().await {
-            Ok((stream, addr)) => {
+            Ok((stream, _addr)) => {
                 let pointer = Arc::clone(&state);
                 tokio::spawn(async move {
-                    let res = handle_connection(stream, pointer).await;
+                    let res = handler::handle_connection(stream, pointer).await;
                     if let Err(e) = res {
-                        println!("Connection closed with error: {}", e);
+                        eprintln!("Connection closed with error: {}", e);
                     }
                 });
             }
             Err(e) => {
-                print!("An error occured accepting tcp connection: {}", e)
+                eprint!("An error occured accepting tcp connection: {}", e)
             }
         }
     }

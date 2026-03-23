@@ -2,8 +2,9 @@ use tokio::sync::{Mutex, mpsc};
 use std::collections::HashMap;
 
 pub struct ServerState {
-    clients: Mutex<HashMap<[u8; 32], mpsc::UnboundedSender<Vec<u8>>>>
+    pub clients: Mutex<HashMap<[u8; 32], mpsc::UnboundedSender<Vec<u8>>>>
 }
+
 
 impl ServerState {
     pub fn new() -> Self {
