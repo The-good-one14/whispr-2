@@ -10,7 +10,7 @@ pub fn hash(data: &[u8]) -> [u8;32] {
 pub fn derive_key(secret: &[u8], label: &[u8], salt: Option<&[u8]>) -> Result<[u8;32],LibError> {
     let kdf = Hkdf::<Sha256>::new(salt, secret);
     let mut output = [0u8;32];
-    kdf.expand(label, &mut output).map_err(|e| LibError::KeyLengthError(Some(e.to_string())))?;
+    kdf.expand(label, &mut output).map_err(|e| LibError::KeyLengthError(e.to_string()))?;
     Ok(output)
 }
 
@@ -23,6 +23,10 @@ pub mod ed25519 {
         let signing_key: SigningKey = SigningKey::generate(&mut random);
         let verifying_key: VerifyingKey = signing_key.verifying_key();
         (signing_key, verifying_key)
+    }
+
+    pub fn get_private_from_seed(seed: [u8;32]) -> SigningKey {
+        SigningKey::from_bytes(&seed)
     }
 
     pub fn get_public(signing_key: &SigningKey) -> VerifyingKey {
@@ -80,11 +84,11 @@ pub mod crypt {
     pub fn seal(data: &[u8], kdf_key: &[u8;32], nonce: &[u8;12]) -> Result<Vec<u8>, LibError> {
 
         let nonce = Nonce::from_slice(nonce);
-        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).encrypt(nonce, data).map_err(|e| LibError::NonceError(Some(e.to_string())))
+        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).encrypt(nonce, data).map_err(|e| LibError::EncryptionError(e.to_string()))
     }
     pub fn open(data: &[u8], kdf_key: &[u8;32], nonce: &[u8;12]) -> Result<Vec<u8>, LibError> {
 
         let nonce = Nonce::from_slice(nonce);
-        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).decrypt(nonce, data).map_err(|e| LibError::DecryptionError(Some(e.to_string())))
+        ChaCha20Poly1305::new(Key::from_slice(kdf_key)).decrypt(nonce, data).map_err(|e| LibError::DecryptionError(e.to_string()))
     }
 }
