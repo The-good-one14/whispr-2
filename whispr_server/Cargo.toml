@@ -9,3 +9,4 @@ postcard = { workspace= true }
 serde = { workspace = true }
 tokio = { version = "1.49.0", features = ["full"] }
 tokio-tungstenite = "0.28.0"
+futures-util = "0.3.32"
