@@ -7,7 +7,7 @@
 - **Blind Server structure:** The server is made to only be able to view the minimum it needs, so your messages stay private.
 - **Multible platform support:** (Eventually) the app will be avaible as TUI, website, and GUI app.
 - **Direct messaging and group chats:** Group rooms will have a structure similar to Discord, where anyone can access it with the right name and key. Rooms are also able to be public, meaning no password/key is needed and anyone can access it.
-
+- **P2P:** In post-mvp, there will be the ability to communicate without a server, keeping all the anonymity and security but with zero downtime, maybe at the cost of some speed.
 - **save & private chat history:** Chat history is saved *locally*, meaning no one can access it except you.
 - **No Identification needed:** setting up an account requires absolutely zero personal info, an account is completely based and dependent on an ed25519 keypair instead of a traditional username & password
 
