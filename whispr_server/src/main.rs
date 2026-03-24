@@ -21,10 +21,10 @@ async fn main() {
             Ok((stream, _addr)) => {
                 let pointer = Arc::clone(&state);
                 tokio::spawn(async move {
-                    let res = handler::handle_connection(stream, pointer).await;
-                    if let Err(e) = res {
-                        eprintln!("Connection closed with error: {}", e);
-                    }
+                    match handler::handle_connection(stream, pointer).await {
+                        Err(e) => eprintln!("Connection closed with error: {}", e),
+                        Ok(_) => println!("Connection closed with OK.")
+                    }2
                 });
             }
             Err(e) => {
