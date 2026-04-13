@@ -1,11 +1,11 @@
-use std::{sync::Arc};
+use std::{str::from_utf8, sync::Arc};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::{Bytes, Message}};
 use whispr_core::{Envelope, LibError, models::{Message as WhisprMessage, ServerMessage}, open_n_verify};
 use tokio::net::TcpStream;
 
-use crate::models::State;
+use crate::models::{DisplayMessage, GeneralMessage, State};
 
 struct Connection {
     reciever: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
@@ -54,8 +54,20 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
                                                         Some(key) => {
                                                             let message = open_n_verify(envelope, &state.identity, &key);
                                                             match message {
-                                                                Ok((message, verified)) => (message, verified),
-                                                                Err(e) => 
+                                                                Ok((message, verified)) => {
+                                                                    let displaymessage = DisplayMessage{payload: GeneralMessage::Text(from_utf8(&message).map_err(|e| LibError::UnknownError(e.to_string()))?.to_string()), is_verified: verified};
+                                                                    let mut history = state.history.lock().await;
+                                                                    if history.get(&sender).is_some() == true {
+                                                                        let e = history.get_mut(&sender).unwrap().push(displaymessage);
+                                                                    }
+                                                                    else {
+                                                                        history.insert(sender.clone(), Vec::new());
+                                                                        let e = history.get_mut(&sender).unwrap();
+                                                                        e.push(displaymessage);
+                                                                    }
+                                                                    drop(history);
+                                                                },
+                                                                Err(e) => ()
                                                             }
 
                                                         }

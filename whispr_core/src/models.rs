@@ -36,9 +36,9 @@ pub enum ServerMessage {
 }
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Identify {
-    hash: [u8;32],
+    pub hash: [u8;32],
     #[serde(with = "serde_bytes")]
-    signature: [u8;64],
+    pub signature: [u8;64],
     
 }
 pub enum SecretKeyType {

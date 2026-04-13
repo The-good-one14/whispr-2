@@ -14,7 +14,7 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
     let user_hash: [u8; 32] = 
         if let Some(Ok(Message::Binary(message))) = receiver.next().await {
             match postcard::from_bytes::<ServerMessage>(&message).map_err(|e| LibError::DeserializationError(e.to_string()))? {
-                ServerMessage::Identify(hash) => hash,
+                ServerMessage::Identify(identify) => identify.hash,
                 
                 _ => return Err(LibError::InvalidIdentity)
             }
