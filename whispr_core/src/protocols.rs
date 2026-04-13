@@ -35,11 +35,9 @@ pub fn seal_n_sign(message: &[u8], reciever: [u8;32], identity: &Identity, publi
     })
 }
 
-pub fn open_n_verify(envelope: Envelope, identity: &Identity, public_key: &VerifyingKey) -> Result<Vec<u8>, LibError> {
-    if !verify_data(&envelope.message, &Signature::from_bytes(&envelope.signature), &public_key) {
-        return Err(LibError::BadSignature);
-    }
+pub fn open_n_verify(envelope: Envelope, identity: &Identity, public_key: &VerifyingKey) -> Result<(Vec<u8>, bool), LibError> {
+    let verified = verify_data(&envelope.message, &Signature::from_bytes(&envelope.signature), &public_key)
     let message: Message = postcard::from_bytes(&envelope.message).map_err(|e| LibError::DeserializationError(e.to_string()))?;
     let key: [u8; 32] = derive_key(generate_shared(SecretKeyType::StaticSecret(identity.x25519_private.clone()), &PublicKey::from(message.public_key)).as_bytes(), &ENCRYPTION_LABEL, None)?;
-    Ok(open(&message.payload, &key, &message.nonce)?)
+    Ok((open(&message.payload, &key, &message.nonce)?, verified))
 }
