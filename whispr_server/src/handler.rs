@@ -11,12 +11,13 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
     let stream_ws = tokio_tungstenite::accept_async(stream_raw).await.map_err(|e| LibError::WebSocketError(e.to_string()))?;
     let (mut sender, mut receiver) = stream_ws.split();
     
-    let user_hash: [u8; 32] = if let Some(Ok(Message::Binary(message))) = receiver.next().await {
-        match postcard::from_bytes::<ServerMessage>(&message).map_err(|e| LibError::DeserializationError(e.to_string())) {
-            Ok(ServerMessage::Identify(hash)) => hash,
-            
-            _ => return Err(LibError::InvalidIdentity)
-        }
+    let user_hash: [u8; 32] = 
+        if let Some(Ok(Message::Binary(message))) = receiver.next().await {
+            match postcard::from_bytes::<ServerMessage>(&message).map_err(|e| LibError::DeserializationError(e.to_string()))? {
+                ServerMessage::Identify(hash) => hash,
+                
+                _ => return Err(LibError::InvalidIdentity)
+            }
     }
     else {
         return Err(LibError::InvalidIdentity)
