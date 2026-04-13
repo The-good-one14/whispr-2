@@ -31,8 +31,15 @@ pub enum LibError {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ServerMessage {
-    Identify([u8;32]),
+    Identify(Identify),
     Message(Envelope)
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Identify {
+    hash: [u8;32],
+    #[serde(with = "serde_bytes")]
+    signature: [u8;64],
+    
 }
 pub enum SecretKeyType {
     EphemeralSecret(EphemeralSecret),
@@ -52,7 +59,6 @@ pub struct Envelope {
     #[serde(with = "serde_bytes")]
     pub signature: [u8;64]
 }
-
 pub struct Identity {
     pub private: SigningKey,
     pub public: VerifyingKey,
