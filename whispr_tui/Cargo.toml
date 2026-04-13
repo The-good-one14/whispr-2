@@ -11,3 +11,4 @@ serde = { workspace = true }
 tokio = { version = "1.49.0", features = ["full"] }
 tokio-tungstenite = "0.28.0"
 futures-util = "0.3.32"
+ed25519-dalek = "2.2.0"
