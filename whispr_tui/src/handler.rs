@@ -2,7 +2,7 @@ use std::{str::from_utf8, sync::Arc};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::{Bytes, Message}};
-use whispr_core::{Envelope, LibError, models::{Message as WhisprMessage, ServerMessage}, open_n_verify};
+use whispr_core::{Envelope, LibError, cryptography::ed25519::sign_data, models::{Identify, Message as WhisprMessage, ServerMessage}, open_n_verify};
 use tokio::net::TcpStream;
 
 use crate::models::{DisplayMessage, GeneralMessage, State};
@@ -29,8 +29,13 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
     loop {
         match Connection::connect(&addr, &port).await {
             Ok(mut connection) => {
-                let id: Vec<u8> = postcard::to_stdvec(&ServerMessage::Identify(state.identity.fingerprint)).map_err(|e| LibError::SerializationError(e.to_string()))?;
-                _ = connection.sender.send(Message::Binary(Bytes::from(id))).await.map_err(|e| LibError::WebSocketError(e.to_string()))?;
+                let identify: Identify = Identify { hash: state.identity.fingerprint, signature: sign_data(&state.identity.fingerprint, &state.identity.private).to_bytes()};
+                let id: Vec<u8> = postcard::to_stdvec(&ServerMessage::Identify(identify))
+                    .map_err(|e| LibError::SerializationError(e.to_string()))?;
+                
+                connection.sender.send(Message::Binary(Bytes::from(id)))
+                    .await
+                    .map_err(|e| LibError::WebSocketError(e.to_string()))?;
                 loop {
                     tokio::select! {
                         msg = connection.reciever.next() => {
@@ -40,45 +45,33 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
                                         Ok(message) => {
                                             match message {
                                                 Message::Binary(bytes) => {
-                                                    let envelope = postcard::from_bytes::<Envelope>(&bytes.to_vec())
-                                                    .map_err(|e| LibError::SerializationError(e.to_string()))?;
+                                                    let envelope = postcard::from_bytes::<Envelope>(&bytes)
+                                                        .map_err(|e| LibError::SerializationError(e.to_string()))?;
                                                     let sender = postcard::from_bytes::<WhisprMessage>(&envelope.message)
-                                                    .map_err(|e| LibError::SerializationError(e.to_string()))?.sender_hash;
+                                                        .map_err(|e| LibError::SerializationError(e.to_string()))?.sender_hash;
                                                     let peers = state.peers.lock().await;
-                                                    let public_key = match peers.get(&sender) {
-                                                        Some(key) => Some(*key),
-                                                        None => None
-                                                    };
+                                                    let public_key = *peers.get(&sender);
                                                     drop(peers);
-                                                    match public_key {
-                                                        Some(key) => {
-                                                            let message = open_n_verify(envelope, &state.identity, &key);
-                                                            match message {
-                                                                Ok((message, verified)) => {
-                                                                    let displaymessage = DisplayMessage{payload: GeneralMessage::Text(from_utf8(&message).map_err(|e| LibError::UnknownError(e.to_string()))?.to_string()), is_verified: verified};
-                                                                    let mut history = state.history.lock().await;
-                                                                    if history.get(&sender).is_some() == true {
-                                                                        let e = history.get_mut(&sender).unwrap().push(displaymessage);
-                                                                    }
-                                                                    else {
-                                                                        history.insert(sender.clone(), Vec::new());
-                                                                        let e = history.get_mut(&sender).unwrap();
-                                                                        e.push(displaymessage);
-                                                                    }
-                                                                    drop(history);
-                                                                },
-                                                                Err(e) => ()
-                                                            }
-
-                                                        }
-                                                        None => () // can't open without public key
+                                                    
+                                                    let message = open_n_verify(envelope, &state.identity, public_key);
+                                                    match message {
+                                                        Ok((message, verified)) => {
+                                                            let payload = postcard::from_bytes::<GeneralMessage>(&message)
+                                                                .map_err(|e| LibError::DeserializationError(e.to_string()))?;
+                                                            let displaymessage = DisplayMessage{payload, is_verified: verified};
+                                                            let mut history = state.history.lock().await;
+                                                            let entry = history.entry(sender).or_insert(Vec::new());
+                                                            entry.push(displaymessage);
+                                                            drop(history);
+                                                        },
+                                                        Err(e) => eprintln!("Error opening incoming message: {}", e)
                                                     }
                                                 }
                                                 _ => ()
                                             }
                                         }
                                         
-                                        Err(e) => eprintln!("Error recieving WebSocket frame: {}", e.to_string())
+                                        Err(e) => eprintln!("Error recieving WebSocket frame: {}", e)
                                     }
                                 }
                                 None => {
@@ -87,7 +80,9 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
                             }
                         }
 
-                        msg = todo() => {}
+                        msg = todo() => {
+
+                        }
                     }
                 }
             }

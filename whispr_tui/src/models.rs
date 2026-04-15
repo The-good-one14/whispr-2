@@ -3,6 +3,7 @@ use tokio::sync::Mutex;
 use whispr_core::models::Identity;
 use ed25519_dalek::VerifyingKey;
 
+#[derive(serde::Deserialize)]
 pub enum GeneralMessage {
     Text(String),
     Image(Vec<u8>),
@@ -10,10 +11,9 @@ pub enum GeneralMessage {
 
 }
 pub struct DisplayMessage {
-    pub is_verified: bool,
+    pub is_verified: verified,
     pub payload: GeneralMessage
 }
-
 pub struct State {
     pub identity: Identity,
     pub history: Mutex<HashMap<[u8;32], Vec<DisplayMessage>>>,

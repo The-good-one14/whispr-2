@@ -3,7 +3,7 @@ use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use thiserror::Error;
 
 pub mod constants {
-    pub const ENCRYPTION_LABEL: &[u8] = b"Whispr-x25519-key-label v1";
+    pub const ENCRYPTION_LABEL: &[u8] = b"Whispr encryption label";
 }
 #[derive(Error, Debug)]
 pub enum LibError {
@@ -23,12 +23,13 @@ pub enum LibError {
     InvalidIdentity,
     #[error("Random number error")]
     RandomNumberError,
-    #[error("Message had a bad signature")]
-    BadSignature,
     #[error("Unknown error: {0}")]
     UnknownError(String)
 }
-
+pub enum Verification {
+    Signature(bool),
+    NoSignature
+}
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ServerMessage {
     Identify(Identify),

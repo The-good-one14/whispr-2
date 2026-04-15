@@ -3,7 +3,7 @@ use std::sync::Arc;
 use futures_util::{SinkExt, StreamExt};
 use tokio::{net::TcpStream, sync::mpsc};
 use tokio_tungstenite::{tungstenite::Message};
-use whispr_core::{Message as WhisprMessage, LibError, models::ServerMessage};
+use whispr_core::{LibError, Message as WhisprMessage, cryptography::ed25519::verify_data, models::ServerMessage};
 
 use crate::{state::ServerState};
 
@@ -11,17 +11,24 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
     let stream_ws = tokio_tungstenite::accept_async(stream_raw).await.map_err(|e| LibError::WebSocketError(e.to_string()))?;
     let (mut sender, mut receiver) = stream_ws.split();
     
-    let user_hash: [u8; 32] = 
+    let user_hash: [u8; 32] =
         if let Some(Ok(Message::Binary(message))) = receiver.next().await {
             match postcard::from_bytes::<ServerMessage>(&message).map_err(|e| LibError::DeserializationError(e.to_string()))? {
-                ServerMessage::Identify(identify) => identify.hash,
+                ServerMessage::Identify(identify) => {
+                    if verify_data(&identify.hash, Signature::from(identify.signature), ) {
+                        identify.hash
+                    }
+                    else {
+                        return Err(LibError::InvalidIdentity);
+                    }
+                },
                 
                 _ => return Err(LibError::InvalidIdentity)
             }
-    }
-    else {
-        return Err(LibError::InvalidIdentity)
-    };
+        }
+        else {
+            return Err(LibError::InvalidIdentity)
+        };
 
     let (tx, mut rx) = mpsc::unbounded_channel();
 
