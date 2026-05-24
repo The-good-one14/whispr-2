@@ -37,7 +37,7 @@ pub fn open_n_verify(envelope: Envelope, identity: &Identity, public_key: Option
     let verified = match public_key {
         Some(public_key) => Verification::Signature(verify_data(&envelope.message, &Signature::from_bytes(&envelope.signature), &public_key)),
         None => Verification::NoSignature
-    }
+    };
     let message: Message = postcard::from_bytes(&envelope.message)
         .map_err(|e| LibError::DeserializationError(e.to_string()))?;
     let key: [u8; 32] = derive_key(generate_shared(SecretKeyType::StaticSecret(identity.x25519_private.clone()), &PublicKey::from(message.public_key)).as_bytes(), &ENCRYPTION_LABEL, None)?;
