@@ -22,7 +22,7 @@
 
 ---
 ### **Installation:**
-- **Not available yett, I'm working on it**
+- **Not available yet, I'm working on it**
 -
 --
 ### **AI usage disclaimer:** 
