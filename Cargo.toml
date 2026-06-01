@@ -5,4 +5,16 @@ members = ["whispr_core", "whispr_server", "whispr_tui"]
 [workspace.dependencies]
 postcard = { version = "1.0", features = ["use-std"] }
 serde = { version = "1.0.228", features = ["derive"] }
+serde_bytes = "0.11.19"
+
 whispr_core = { path = "./whispr_core" }
+
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+x25519-dalek = { version = "2.0.1", features = ["static_secrets"]}
+
+tokio = { version = "1.49.0", features = ["full"] }
+tokio-tungstenite = "0.28.0"
+
+sha2 = "0.10.9"
+thiserror = "2.0.18"
+rand = "0.8.0"

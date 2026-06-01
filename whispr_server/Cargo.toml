@@ -7,6 +7,7 @@ edition = "2024"
 whispr_core = { workspace = true }
 postcard = { workspace= true }
 serde = { workspace = true }
-tokio = { version = "1.49.0", features = ["full"] }
-tokio-tungstenite = "0.28.0"
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+ed25519-dalek = { workspace = true }
 futures-util = "0.3.32"
