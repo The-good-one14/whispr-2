@@ -11,8 +11,10 @@ pub mod constants {
 // To simplify errors, there is an enum for that including their respective error messages
 #[derive(Error, Debug)]
 pub enum LibError {
-    #[error("Cryptographic key lenth was invalid: {0}")]
+    #[error("Cryptographic key length was invalid: {0}")]
     KeyLengthError(String),
+    #[error("Key-related error: {0}")]
+    KeyError(String),
     #[error("Encryption failed: {0}")]
     EncryptionError(String),
     #[error("Decryption failed: {0}")]
