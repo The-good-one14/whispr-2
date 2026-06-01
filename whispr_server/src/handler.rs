@@ -14,7 +14,7 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
         if let Some(Ok(Message::Binary(message))) = receiver.next().await {
             match postcard::from_bytes::<ServerMessage>(&message).map_err(|e| LibError::DeserializationError(e.to_string()))? {
                 ServerMessage::Identify(identify) => {
-                    if verify_data(&identify.public_key, &Signature::from(identify.signature), &VerifyingKey::from_bytes(&identify.public_key).map_err(|e| LibError::UnknownError(e.to_string()))?) {
+                    if verify_data(&identify.public_key, &Signature::from(identify.signature), &VerifyingKey::from_bytes(&identify.public_key).map_err(|e| LibError::KeyError(e.to_string()))?) {
                         hash(&identify.public_key)
                     }
                     else {
