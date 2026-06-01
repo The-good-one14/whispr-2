@@ -1,10 +1,9 @@
 use std::sync::Arc;
-
 use futures_util::{SinkExt, StreamExt};
 use tokio::{net::TcpStream, sync::mpsc};
 use tokio_tungstenite::{tungstenite::Message};
-use whispr_core::{LibError, Message as WhisprMessage, cryptography::ed25519::verify_data, models::ServerMessage};
-
+use whispr_core::{LibError, Message as WhisprMessage, cryptography::{ed25519::verify_data, hash}, models::ServerMessage};
+use ed25519_dalek::{Signature, VerifyingKey};
 use crate::{state::ServerState};
 
 pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -> Result<(), LibError> {
@@ -15,8 +14,8 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
         if let Some(Ok(Message::Binary(message))) = receiver.next().await {
             match postcard::from_bytes::<ServerMessage>(&message).map_err(|e| LibError::DeserializationError(e.to_string()))? {
                 ServerMessage::Identify(identify) => {
-                    if verify_data(&identify.hash, Signature::from(identify.signature), ) {
-                        identify.hash
+                    if verify_data(&identify.public_key, &Signature::from(identify.signature), &VerifyingKey::from_bytes(&identify.public_key).map_err(|e| LibError::UnknownError(e.to_string()))?) {
+                        hash(&identify.public_key)
                     }
                     else {
                         return Err(LibError::InvalidIdentity);

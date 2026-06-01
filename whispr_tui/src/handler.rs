@@ -1,4 +1,4 @@
-use std::{str::from_utf8, sync::Arc};
+use std::{sync::Arc};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::{Bytes, Message}};
@@ -29,7 +29,7 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
     loop {
         match Connection::connect(&addr, &port).await {
             Ok(mut connection) => {
-                let identify: Identify = Identify { hash: state.identity.fingerprint, signature: sign_data(&state.identity.fingerprint, &state.identity.private).to_bytes()};
+                let identify: Identify = Identify { public_key: *state.identity.public.as_bytes(), signature: sign_data(&state.identity.fingerprint, &state.identity.private).to_bytes()};
                 let id: Vec<u8> = postcard::to_stdvec(&ServerMessage::Identify(identify))
                     .map_err(|e| LibError::SerializationError(e.to_string()))?;
                 
@@ -50,7 +50,7 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
                                                     let sender = postcard::from_bytes::<WhisprMessage>(&envelope.message)
                                                         .map_err(|e| LibError::SerializationError(e.to_string()))?.sender_hash;
                                                     let peers = state.peers.lock().await;
-                                                    let public_key = *peers.get(&sender);
+                                                    let public_key = peers.get(&sender);
                                                     drop(peers);
                                                     
                                                     let message = open_n_verify(envelope, &state.identity, public_key);
