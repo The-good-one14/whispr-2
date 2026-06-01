@@ -1,3 +1,5 @@
+// All enums, structs, and constants
+
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use thiserror::Error;
@@ -5,6 +7,8 @@ use thiserror::Error;
 pub mod constants {
     pub const ENCRYPTION_LABEL: &[u8] = b"Whispr encryption label";
 }
+
+// To simplify errors, there is an enum for that including their respective error messages
 #[derive(Error, Debug)]
 pub enum LibError {
     #[error("Cryptographic key lenth was invalid: {0}")]
@@ -26,26 +30,38 @@ pub enum LibError {
     #[error("Unknown error: {0}")]
     UnknownError(String)
 }
+
+// An enum for both signed and unsigned (unverified) messages
 pub enum Verification {
     Signature(bool),
     NoSignature
 }
+
+// For all the types of messages a client-server connection needs
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ServerMessage {
+    // For identifying yourself to the server
     Identify(Identify),
+    // For sending a message to someone over the server
     Message(Envelope)
 }
+
+// A struct for identifying yourself to the server at the start of a connection
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Identify {
-    pub hash: [u8;32],
+    pub public_key: [u8;32],
     #[serde(with = "serde_bytes")]
     pub signature: [u8;64],
     
 }
+
+// To handle both types of x25519 keys
 pub enum SecretKeyType {
     EphemeralSecret(EphemeralSecret),
     StaticSecret(StaticSecret)
 }
+
+// The struct of a message sent to another client
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Message {
     pub sender_hash: [u8;32],
@@ -54,12 +70,16 @@ pub struct Message {
     pub nonce: [u8;12],
     pub payload: Vec<u8>
 }
+
+// The struct sent over the connection, with the Message (serialized) and signature
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Envelope {
     pub message: Vec<u8>,
     #[serde(with = "serde_bytes")]
     pub signature: [u8;64]
 }
+
+// A struct for clients to store all the various keys
 pub struct Identity {
     pub private: SigningKey,
     pub public: VerifyingKey,
@@ -68,6 +88,7 @@ pub struct Identity {
     pub x25519_public: PublicKey
 }
 
+// For ephemeral x25519 keypairs to be stored in 1 variable
 pub struct Session {
     pub secret: EphemeralSecret,
     pub public: PublicKey,

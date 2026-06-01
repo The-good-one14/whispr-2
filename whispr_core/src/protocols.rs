@@ -1,8 +1,11 @@
+// All high-level functions for proccessing data
+
 use crate::{cryptography::{crypt::{generate_nonce, open, seal}, derive_key, ed25519::{get_public, sign_data, verify_data}, hash, x25519::{generate_ephemeral, generate_shared, generate_static}}, models::Verification};
 use crate::models::{Envelope, Identity, Message, Session, LibError, SecretKeyType, constants::ENCRYPTION_LABEL};
 use ed25519_dalek::{Signature, SigningKey, VerifyingKey};
 use x25519_dalek::{PublicKey, StaticSecret};
 
+// Deriving all needed keys from the ed25519 seed key, and wrapping them in a struct
 pub fn get_identity(private: SigningKey) -> Result<Identity, LibError> {
     let static_keys: (StaticSecret, PublicKey) = generate_static(derive_key(private.as_bytes(), &ENCRYPTION_LABEL, None)?);
     Ok(Identity {
@@ -13,7 +16,7 @@ pub fn get_identity(private: SigningKey) -> Result<Identity, LibError> {
         private
     })
 }
-
+// High-level function for wrapping a raw message and all needed arguments into an Envelope
 pub fn seal_n_sign(message: &[u8], reciever: [u8;32], identity: &Identity, publickey: &PublicKey) -> Result<Envelope, LibError> {
     let session: Session = generate_ephemeral();
     let shared: x25519_dalek::SharedSecret = generate_shared(SecretKeyType::EphemeralSecret(session.secret), publickey);
@@ -33,8 +36,9 @@ pub fn seal_n_sign(message: &[u8], reciever: [u8;32], identity: &Identity, publi
     Ok(Envelope {message: sealed_message_bytes, signature})
 }
 
+// High-level function of unwrapping a recieved Envelope 
 pub fn open_n_verify(envelope: Envelope, identity: &Identity, public_key: Option<&VerifyingKey>) -> Result<(Vec<u8>, Verification), LibError> {
-    let verified = match public_key {
+    let verified: Verification = match public_key {
         Some(public_key) => Verification::Signature(verify_data(&envelope.message, &Signature::from_bytes(&envelope.signature), &public_key)),
         None => Verification::NoSignature
     };

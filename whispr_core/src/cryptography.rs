@@ -1,12 +1,16 @@
+// All low-level cryptography functions
+
 use sha2::{Sha256, Digest};
 use hkdf::Hkdf;
 use crate::models::LibError;
 
 
+// simple hash function
 pub fn hash(data: &[u8]) -> [u8;32] {
     Sha256::digest(data).into()
 }
 
+//kdf for encryption
 pub fn derive_key(secret: &[u8], label: &[u8], salt: Option<&[u8]>) -> Result<[u8;32],LibError> {
     let kdf = Hkdf::<Sha256>::new(salt, secret);
     let mut output = [0u8;32];
@@ -14,6 +18,7 @@ pub fn derive_key(secret: &[u8], label: &[u8], salt: Option<&[u8]>) -> Result<[u
     Ok(output)
 }
 
+// all ed25519 related functions are grouped here
 pub mod ed25519 {
     use ed25519_dalek::{SigningKey, VerifyingKey, Verifier, Signature, Signer};
     use rand::rngs::OsRng;
@@ -42,6 +47,7 @@ pub mod ed25519 {
     }
 }
 
+// same as above, but here for x25519
 pub mod x25519 {
     use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret, StaticSecret};
     use rand::rngs::OsRng;
@@ -53,10 +59,7 @@ pub mod x25519 {
         let secret = EphemeralSecret::random_from_rng(random);
         let public = PublicKey::from(&secret);
         
-        Session {
-            secret: secret,
-            public: public,
-        }
+        Session {secret, public}
     }
     pub fn generate_static(key: [u8;32]) -> (StaticSecret, PublicKey) {
         let secret: StaticSecret = StaticSecret::from(key);
@@ -71,6 +74,7 @@ pub mod x25519 {
     }
 }
 
+// all low-level cryptographic functions grouped here
 pub mod crypt {
     use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, Nonce, aead::Aead};
     use rand::{RngCore, rngs::OsRng};
@@ -81,11 +85,15 @@ pub mod crypt {
         OsRng.try_fill_bytes(&mut nonce).map_err(|_| LibError::RandomNumberError)?;
         Ok(nonce)
     }
+
+    // encryption
     pub fn seal(data: &[u8], kdf_key: &[u8;32], nonce: &[u8;12]) -> Result<Vec<u8>, LibError> {
 
         let nonce = Nonce::from_slice(nonce);
         ChaCha20Poly1305::new(Key::from_slice(kdf_key)).encrypt(nonce, data).map_err(|e| LibError::EncryptionError(e.to_string()))
     }
+
+    // decryption
     pub fn open(data: &[u8], kdf_key: &[u8;32], nonce: &[u8;12]) -> Result<Vec<u8>, LibError> {
 
         let nonce = Nonce::from_slice(nonce);
