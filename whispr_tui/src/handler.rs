@@ -29,13 +29,14 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
     loop {
         match Connection::connect(&addr, &port).await {
             Ok(mut connection) => {
-                let identify: Identify = Identify { public_key: *state.identity.public.as_bytes(), signature: sign_data(&state.identity.fingerprint, &state.identity.private).to_bytes()};
+                let identify: Identify = Identify { public_key: state.identity.public.clone().to_bytes(), signature: sign_data(state.identity.public.as_bytes(), &state.identity.private).to_bytes()};
                 let id: Vec<u8> = postcard::to_stdvec(&ServerMessage::Identify(identify))
                     .map_err(|e| LibError::SerializationError(e.to_string()))?;
                 
                 connection.sender.send(Message::Binary(Bytes::from(id)))
                     .await
                     .map_err(|e| LibError::WebSocketError(e.to_string()))?;
+                println!("Connected to {}:{} successfully.", &addr, &port);
                 loop {
                     tokio::select! {
                         msg = connection.reciever.next() => {
@@ -50,10 +51,10 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
                                                     let sender = postcard::from_bytes::<WhisprMessage>(&envelope.message)
                                                         .map_err(|e| LibError::SerializationError(e.to_string()))?.sender_hash;
                                                     let peers = state.peers.lock().await;
-                                                    let public_key = peers.get(&sender);
+                                                    let public_key = peers.get(&sender).copied();
                                                     drop(peers);
-                                                    
-                                                    let message = open_n_verify(envelope, &state.identity, public_key);
+
+                                                    let message = open_n_verify(envelope, &state.identity, public_key.as_ref());
                                                     match message {
                                                         Ok((message, verified)) => {
                                                             let payload = postcard::from_bytes::<GeneralMessage>(&message)
@@ -80,9 +81,9 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
                             }
                         }
 
-                        msg = todo() => {
+                        //msg = todo() => {
 
-                        }
+                        //}
                     }
                 }
             }

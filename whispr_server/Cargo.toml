@@ -11,3 +11,4 @@ tokio = { workspace = true }
 tokio-tungstenite = { workspace = true }
 ed25519-dalek = { workspace = true }
 futures-util = "0.3.32"
+base64 = "0.22.1"
