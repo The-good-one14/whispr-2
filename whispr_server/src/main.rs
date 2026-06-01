@@ -12,7 +12,7 @@ async fn main() {
 
     let listener = TcpListener::bind(format!("{}:{}", models::IP_ADDR, models::IP_PORT))
     .await
-    .expect(&format!("TCP Listener failed to open on {}:{}", models::IP_ADDR, models::IP_PORT));
+    .expect(&format!("TCP Listener failed to open on '{}:{}': ", models::IP_ADDR, models::IP_PORT));
 
     println!("Whispr Server is listening on {}...", models::IP_PORT);
 
