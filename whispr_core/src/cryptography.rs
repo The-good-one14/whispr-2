@@ -30,7 +30,7 @@ pub mod ed25519 {
         (signing_key, verifying_key)
     }
 
-    pub fn get_private_from_seed(seed: [u8;32]) -> SigningKey {
+    pub fn get_key_from_seed(seed: [u8;32]) -> SigningKey {
         SigningKey::from_bytes(&seed)
     }
 

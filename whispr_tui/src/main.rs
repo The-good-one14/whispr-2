@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::Mutex;
-use whispr_core::{cryptography::ed25519::get_private_from_seed, get_identity};
+use whispr_core::{cryptography::ed25519::get_key_from_seed, get_identity};
 
 use crate::{models::State};
 
@@ -17,13 +17,13 @@ const PRIVATE_KEY: [u8; 32] = [
 
 #[tokio::main]
 async fn main() {
-    let identity = get_identity(get_private_from_seed(PRIVATE_KEY)).expect("error getting identity");
+    let identity = get_identity(get_key_from_seed(PRIVATE_KEY)).expect("error getting identity");
     let state: Arc<models::State> = Arc::new(State{ identity, history: Mutex::new(HashMap::new()), peers: Mutex::new(HashMap::new())});
     let pointer = Arc::clone(&state);
     tokio::spawn(
         async move {
-            handler::connection_handler(pointer, "127.0.0.1".to_string(), "8080".to_string())
+            let _ = handler::connection_handler(pointer, "127.0.0.1".to_string(), "8080".to_string()).await;
         }
     );
-
+    tokio::signal::ctrl_c().await.unwrap();
 }
