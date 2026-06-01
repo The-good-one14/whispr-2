@@ -2,6 +2,7 @@ use std::{collections::HashMap};
 use tokio::sync::Mutex;
 use whispr_core::models::Identity;
 use ed25519_dalek::VerifyingKey;
+use whispr_core::models::Verification;
 
 #[derive(serde::Deserialize)]
 pub enum GeneralMessage {
@@ -11,7 +12,7 @@ pub enum GeneralMessage {
 
 }
 pub struct DisplayMessage {
-    pub is_verified: verified,
+    pub is_verified: Verification,
     pub payload: GeneralMessage
 }
 pub struct State {
