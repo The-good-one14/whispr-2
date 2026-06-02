@@ -56,7 +56,7 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
                                                 let _ = tx.send(bytes.to_vec());
                                             }
                                             else {
-                                                todo!()
+                                                println!("Reciever is offline, dropping message... (NEEDS FIXING)")
                                             }
                                             drop(map);
                                         }
