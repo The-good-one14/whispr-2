@@ -2,7 +2,7 @@ use std::sync::Arc;
 use futures_util::{SinkExt, StreamExt};
 use tokio::{net::TcpStream, sync::mpsc};
 use tokio_tungstenite::{tungstenite::Message};
-use whispr_core::{LibError, Message as WhisprMessage, cryptography::{ed25519::verify_data, hash}, models::ServerMessage};
+use whispr_core::{LibError, Message as WhisprMessage, cryptography::{ed25519::verify_data, hash}, models::{ClientMessage::MessageFailed, ServerMessage}};
 use ed25519_dalek::{Signature, VerifyingKey};
 use crate::{state::ServerState};
 use base64::{Engine as _, engine::general_purpose};
@@ -56,7 +56,8 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
                                                 let _ = tx.send(bytes.to_vec());
                                             }
                                             else {
-                                                println!("Reciever is offline, dropping message... (NEEDS FIXING)")
+                                                let _ = sender.send(Message::Binary(tokio_tungstenite::tungstenite::Bytes::from(postcard::to_stdvec(&ServerMessage::ClientMessage(MessageFailed("Recieving client is offline.".to_string()))))));
+                                                println!("Reciever is offline, dropping message...")
                                             }
                                             drop(map);
                                         }

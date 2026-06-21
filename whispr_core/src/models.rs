@@ -45,7 +45,16 @@ pub enum ServerMessage {
     // For identifying yourself to the server
     Identify(Identify),
     // For sending a message to someone over the server
-    Message(Envelope)
+    Message(Envelope),
+    // For sending a message back to the client
+    ClientMessage(ClientMessage)
+}
+
+// For all the Messages a server needs to send back to the client
+#[derive(Error, Debug)]
+pub enum ClientMessage {
+    #[error("Error sending message: {0}")]
+    MessageFailed(String),
 }
 
 // A struct for identifying yourself to the server at the start of a connection
