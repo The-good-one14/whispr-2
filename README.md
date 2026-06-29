@@ -24,4 +24,9 @@
 ### **Installation:**
 - **Not available yet, I'm working on it**
 ---
-![brainmade-logo](https://brainmade.org/white-logo.svg)
+<a href="https://brainmade.org/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://brainmade.org/white-logo.svg">
+    <img alt="Brainmade mark" src="https://brainmade.org/black-logo.svg">
+  </picture>
+</a>
