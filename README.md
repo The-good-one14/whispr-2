@@ -23,13 +23,5 @@
 ---
 ### **Installation:**
 - **Not available yet, I'm working on it**
--
---
-### **AI usage disclaimer:** 
-#### what AI *is not* used for:
-- Writing of code
-#### what AI *is* used for:
-- Brainstorming
-- Planning
-
-**All code is completely under human control, down to the last letter. It would be a HUGE security issue if ai would autonomously write code designed to be private and secure.**
+---
+![brainmade-logo](https://brainmade.org/white-logo.svg)
