@@ -51,7 +51,7 @@ pub enum ServerMessage {
 }
 
 // For all the Messages a server needs to send back to the client
-#[derive(Error, Debug)]
+#[derive(Error, Debug, serde::Serialize, serde::Deserialize)]
 pub enum ClientMessage {
     #[error("Error sending message: {0}")]
     MessageFailed(String),
