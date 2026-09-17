@@ -1,9 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::{Arc}};
 
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, mpsc};
 use whispr_core::{cryptography::ed25519::get_key_from_seed, get_identity};
 
-use crate::{models::State};
+use crate::models::{InternalMessage::{self, Send}, State};
 
 mod models;
 mod handler;
@@ -17,13 +17,17 @@ const PRIVATE_KEY: [u8; 32] = [
 
 #[tokio::main]
 async fn main() {
+
     let identity = get_identity(get_key_from_seed(PRIVATE_KEY)).expect("error getting identity");
     let state: Arc<models::State> = Arc::new(State{ identity, history: Mutex::new(HashMap::new()), peers: Mutex::new(HashMap::new())});
     let pointer = Arc::clone(&state);
+    let (connection_tx, mut connection_rx) = mpsc::unbounded_channel::<InternalMessage>();
+
     tokio::spawn(
         async move {
-            let _ = handler::connection_handler(pointer, "127.0.0.1".to_string(), "8080".to_string()).await;
+            let _ = handler::connection_handler(pointer, "127.0.0.1".to_string(), "8080".to_string(), connection_rx).await;
         }
     );
+    
     tokio::signal::ctrl_c().await.unwrap();
 }

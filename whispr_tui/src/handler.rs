@@ -2,10 +2,11 @@ use std::{sync::Arc};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::{Bytes, Message}};
-use whispr_core::{Envelope, LibError, cryptography::ed25519::sign_data, models::{Identify, Message as WhisprMessage, ServerMessage}, open_n_verify};
-use tokio::net::TcpStream;
+use whispr_core::{Envelope, LibError, cryptography::{ed25519::sign_data, hash}, models::{Identify, Message as WhisprMessage, ServerMessage}, open_n_verify, seal_n_sign};
+use tokio::{net::TcpStream, sync::mpsc::UnboundedReceiver};
+use base64::{Engine as _, engine::general_purpose};
 
-use crate::models::{DisplayMessage, GeneralMessage, State};
+use crate::models::{DisplayMessage, GeneralMessage, InternalMessage, State};
 
 struct Connection {
     reciever: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
@@ -25,7 +26,7 @@ impl Connection {
 
 
 
-pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -> Result<(), LibError> {
+pub async fn connection_handler(state: Arc<State>, addr: String, port: String, mut connection_rx: UnboundedReceiver<InternalMessage>) -> Result<(), LibError> {
     loop {
         match Connection::connect(&addr, &port).await {
             Ok(mut connection) => {
@@ -59,6 +60,10 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
                                                         Ok((message, verified)) => {
                                                             let payload = postcard::from_bytes::<GeneralMessage>(&message)
                                                                 .map_err(|e| LibError::DeserializationError(e.to_string()))?;
+                                                            match payload {
+                                                                GeneralMessage::Text(ref e) => println!(r#"New message from "{}": {} "#, general_purpose::STANDARD.encode(sender), e),
+                                                                _ => ()
+                                                            }
                                                             let displaymessage = DisplayMessage{payload, is_verified: verified};
                                                             let mut history = state.history.lock().await;
                                                             let entry = history.entry(sender).or_insert(Vec::new());
@@ -81,9 +86,21 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String) -
                             }
                         }
 
-                        //msg = todo() => {
-
-                        //}
+                        msg = connection_rx.recv() => {
+                            match msg {
+                                Some(task) => {
+                                    match task {
+                                        InternalMessage::Send(message) => {
+                                            
+                                            let envelope = seal_n_sign(&message.payload, message.reciever_hash, &state.identity, PublicKey);
+                                        },
+                                    }
+                                }
+                                None => {
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
             }
