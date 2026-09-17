@@ -56,7 +56,8 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
                                                 let _ = tx.send(bytes.to_vec());
                                             }
                                             else {
-                                                let _ = sender.send(Message::Binary(tokio_tungstenite::tungstenite::Bytes::from(postcard::to_stdvec(&ServerMessage::ClientMessage(MessageFailed("Recieving client is offline.".to_string()))))));
+                                                let offline_message = tokio_tungstenite::tungstenite::Bytes::from(postcard::to_stdvec(&ServerMessage::ClientMessage(MessageFailed("Recieving client is offline.".to_string()))).map_err(|e| LibError::DeserializationError(e.to_string()))?);
+                                                let _ = sender.send(Message::Binary(offline_message));
                                                 println!("Reciever is offline, dropping message...")
                                             }
                                             drop(map);
