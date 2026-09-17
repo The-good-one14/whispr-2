@@ -24,9 +24,14 @@
 ### **Installation:**
 - **Not available yet, I'm working on it**
 ---
-<a href="https://brainmade.org/">
+<a href='https://brainmade.org/'>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://brainmade.org/white-logo.svg">
-    <img alt="Brainmade mark" src="https://brainmade.org/black-logo.svg">
+    <source alt='Brainmade mark' media='(prefers-color-scheme: dark)' srcset='media/brainmade/white-logo.svg' height='100'>
+    <img alt='Brainmade mark' src='media/brainmade/black-logo.svg' height='100'>
+  </picture>
+</a>
+<a href='https://www.realgoodai.org/real-rating'>
+  <picture>
+    <img alt='REAL Rating 2' src='media/real-rating-2.png' height='100'>
   </picture>
 </a>
