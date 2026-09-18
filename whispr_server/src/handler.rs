@@ -53,11 +53,12 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
 
                                             let map = state.clients.lock().await;
                                             if let Some(tx) = map.get(&dest) {
-                                                let _ = tx.send(bytes.to_vec());
+                                                let _ = tx.send(postcard::to_stdvec(&envelope).map_err(|e| LibError::SerializationError(e.to_string()))?);
+                                                println!("Sent a message to {}", general_purpose::STANDARD.encode(dest))
                                             }
                                             else {
                                                 let offline_message = tokio_tungstenite::tungstenite::Bytes::from(postcard::to_stdvec(&ServerMessage::ClientMessage(MessageFailed("Recieving client is offline, dropping the message".to_string()))).map_err(|e| LibError::DeserializationError(e.to_string()))?);
-                                                let _ = sender.send(Message::Binary(offline_message));
+                                                let _ = sender.send(Message::Binary(offline_message)).await;
                                                 println!("Reciever is offline, dropping message...")
                                             }
                                             drop(map);
