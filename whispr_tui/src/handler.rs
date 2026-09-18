@@ -5,6 +5,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::{Bytes, Me
 use whispr_core::{Envelope, LibError, cryptography::{ed25519::sign_data, hash}, models::{Identify, Message as WhisprMessage, ServerMessage}, open_n_verify, seal_n_sign};
 use tokio::{net::TcpStream, sync::mpsc::UnboundedReceiver};
 use base64::{Engine as _, engine::general_purpose};
+use x25519_dalek::PublicKey;
 
 use crate::models::{DisplayMessage, GeneralMessage, InternalMessage, State};
 
@@ -92,7 +93,13 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String, m
                                     match task {
                                         InternalMessage::Send(message) => {
                                             
-                                            let envelope = seal_n_sign(&message.payload, message.reciever_hash, &state.identity, PublicKey);
+                                            let envelope = seal_n_sign(&message.payload, message.reciever_hash, &state.identity, &PublicKey::from(message.public_key))?;
+                                            let servermessage = ServerMessage::Message(envelope);
+                                            let bytes = Bytes::from(postcard::to_stdvec(&servermessage).map_err(|e| LibError::SerializationError(e.to_string()))?);
+                                            
+                                            connection.sender.send(Message::Binary(bytes))
+                                            .await
+                                            .map_err(|e| LibError::WebSocketError(e.to_string()))?;
                                         },
                                     }
                                 }
