@@ -1,16 +1,17 @@
 use std::{collections::HashMap};
 use tokio::sync::Mutex;
-use whispr_core::{Message, models::Identity};
+use whispr_core::{models::Identity};
 use ed25519_dalek::VerifyingKey;
 use whispr_core::models::Verification;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
 pub enum GeneralMessage {
     Text(String),
     Image(Vec<u8>),
     Raw(Vec<u8>)
 
 }
+#[derive(Debug, PartialEq)]
 pub struct DisplayMessage {
     pub is_verified: Verification,
     pub payload: GeneralMessage
@@ -28,4 +29,5 @@ pub struct OutboundMessage {
 }
 pub enum InternalMessage {
     Send(OutboundMessage),
+    Disconnect,
 }

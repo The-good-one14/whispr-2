@@ -2,7 +2,7 @@ use std::{sync::Arc};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::{Bytes, Message}};
-use whispr_core::{Envelope, LibError, cryptography::{ed25519::sign_data, hash}, models::{Identify, Message as WhisprMessage, ServerMessage}, open_n_verify, seal_n_sign};
+use whispr_core::{LibError, cryptography::{ed25519::sign_data}, models::{Identify, Message as WhisprMessage, ServerMessage}, open_n_verify, seal_n_sign};
 use tokio::{net::TcpStream, sync::mpsc::UnboundedReceiver};
 use base64::{Engine as _, engine::general_purpose};
 use x25519_dalek::PublicKey;
@@ -19,9 +19,8 @@ impl Connection {
         let (sender, reciever) = connection.0.split();
         Ok(Connection {reciever, sender})
     }
-    async fn disconnect(mut connection: Self) {
-        _ = connection.sender.send(Message::Close(None));
-        drop(connection);
+    async fn disconnect(mut self) -> () {
+        let _ = self.sender.close().await;
     }
 }
 
@@ -48,30 +47,39 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String, m
                                         Ok(message) => {
                                             match message {
                                                 Message::Binary(bytes) => {
-                                                    let envelope = postcard::from_bytes::<Envelope>(&bytes)
-                                                        .map_err(|e| LibError::SerializationError(e.to_string()))?;
-                                                    let sender = postcard::from_bytes::<WhisprMessage>(&envelope.message)
-                                                        .map_err(|e| LibError::SerializationError(e.to_string()))?.sender_hash;
-                                                    let peers = state.peers.lock().await;
-                                                    let public_key = peers.get(&sender).copied();
-                                                    drop(peers);
+                                                    let servermessage = postcard::from_bytes::<ServerMessage>(&bytes)
+                                                        .map_err(|e| LibError::DeserializationError(e.to_string()))?;
+                                                    match servermessage {
+                                                        ServerMessage::Message(envelope) => {
+                                                            let sender = postcard::from_bytes::<WhisprMessage>(&envelope.message)
+                                                                .map_err(|e| LibError::DeserializationError(e.to_string()))?.sender_hash;
+                                                            let peers = state.peers.lock().await;
+                                                            let public_key = peers.get(&sender).copied();
+                                                            drop(peers);
 
-                                                    let message = open_n_verify(envelope, &state.identity, public_key.as_ref());
-                                                    match message {
-                                                        Ok((message, verified)) => {
-                                                            let payload = postcard::from_bytes::<GeneralMessage>(&message)
-                                                                .map_err(|e| LibError::DeserializationError(e.to_string()))?;
-                                                            match payload {
-                                                                GeneralMessage::Text(ref e) => println!(r#"New message from "{}": {} "#, general_purpose::STANDARD.encode(sender), e),
-                                                                _ => ()
+                                                            let message = open_n_verify(envelope, &state.identity, public_key.as_ref());
+                                                            match message {
+                                                                Ok((message, verified)) => {
+                                                                    let payload = postcard::from_bytes::<GeneralMessage>(&message)
+                                                                        .map_err(|e| LibError::DeserializationError(e.to_string()))?;
+                                                                    match payload {
+                                                                        GeneralMessage::Text(ref e) => println!(r#"New message from "{}": {} "#, general_purpose::STANDARD.encode(sender), e),
+                                                                        _ => ()
+                                                                    }
+                                                                    let displaymessage = DisplayMessage{payload, is_verified: verified};
+                                                                    let mut history = state.history.lock().await;
+                                                                    let entry = history.entry(sender).or_insert(Vec::new());
+                                                                    println!("{:?}", &displaymessage);
+                                                                    entry.push(displaymessage);
+                                                                    drop(history);
+                                                                },
+                                                                Err(e) => eprintln!("Error opening incoming message: {}", e)
                                                             }
-                                                            let displaymessage = DisplayMessage{payload, is_verified: verified};
-                                                            let mut history = state.history.lock().await;
-                                                            let entry = history.entry(sender).or_insert(Vec::new());
-                                                            entry.push(displaymessage);
-                                                            drop(history);
                                                         },
-                                                        Err(e) => eprintln!("Error opening incoming message: {}", e)
+                                                        ServerMessage::ClientMessage(message) => {
+                                                            eprintln!("Message from server: {}", message)
+                                                        }
+                                                        _ => ()
                                                     }
                                                 }
                                                 _ => ()
@@ -97,9 +105,13 @@ pub async fn connection_handler(state: Arc<State>, addr: String, port: String, m
                                             let servermessage = ServerMessage::Message(envelope);
                                             let bytes = Bytes::from(postcard::to_stdvec(&servermessage).map_err(|e| LibError::SerializationError(e.to_string()))?);
                                             
-                                            connection.sender.send(Message::Binary(bytes))
+                                            _ = connection.sender.send(Message::Binary(bytes))
                                             .await
                                             .map_err(|e| LibError::WebSocketError(e.to_string()))?;
+                                        },
+                                        InternalMessage::Disconnect => {
+                                            connection.disconnect().await;
+                                            return Ok(());
                                         },
                                     }
                                 }

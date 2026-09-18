@@ -34,6 +34,7 @@ pub enum LibError {
 }
 
 // An enum for both signed and unsigned (unverified) messages
+#[derive(Debug, PartialEq)]
 pub enum Verification {
     Signature(bool),
     NoSignature
