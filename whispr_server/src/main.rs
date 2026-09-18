@@ -24,7 +24,7 @@ async fn main() {
                     match handler::handle_connection(stream, pointer).await {
                         Err(e) => eprintln!("Connection closed with error: {}", e),
                         Ok(_) => println!("Connection closed with OK.")
-                    }2
+                    }
                 });
             }
             Err(e) => {
