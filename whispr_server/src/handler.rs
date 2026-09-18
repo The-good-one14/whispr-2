@@ -56,7 +56,7 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
                                                 let _ = tx.send(bytes.to_vec());
                                             }
                                             else {
-                                                let offline_message = tokio_tungstenite::tungstenite::Bytes::from(postcard::to_stdvec(&ServerMessage::ClientMessage(MessageFailed("Recieving client is offline.".to_string()))).map_err(|e| LibError::DeserializationError(e.to_string()))?);
+                                                let offline_message = tokio_tungstenite::tungstenite::Bytes::from(postcard::to_stdvec(&ServerMessage::ClientMessage(MessageFailed("Recieving client is offline, dropping the message".to_string()))).map_err(|e| LibError::DeserializationError(e.to_string()))?);
                                                 let _ = sender.send(Message::Binary(offline_message));
                                                 println!("Reciever is offline, dropping message...")
                                             }
@@ -71,7 +71,7 @@ pub async fn handle_connection(stream_raw: TcpStream, state: Arc<ServerState>) -
                                 
                                 Err(e) => break Err(LibError::SerializationError(e.to_string())),
                                 
-                                _ => break Err(LibError::UnknownError("binary frame was Ok but not a valid ServerMessage::Message".to_string()))
+                                _ => break Err(LibError::UnknownError("binary frame was Ok but not valid".to_string()))
                             }
                         }
                         
