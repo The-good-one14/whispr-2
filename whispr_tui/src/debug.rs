@@ -49,7 +49,7 @@ pub async fn start_debug_chat(tx: mpsc::UnboundedSender<InternalMessage>, state:
             Ok(Some(raw)) => {
                 let text = raw.trim();
                 if !text.is_empty() {
-                    let payload = postcard::to_stdvec(&GeneralMessage::Text("Hello, world!".to_string())).map_err(|e| LibError::SerializationError(e.to_string()))?;
+                    let payload = postcard::to_stdvec(&GeneralMessage::Text(text.to_string())).map_err(|e| LibError::SerializationError(e.to_string()))?;
                     let _ = tx.send(InternalMessage::Send(OutboundMessage { reciever_hash: fingerprint, public_key: x25519_public_key, payload }));
                 }
             },
