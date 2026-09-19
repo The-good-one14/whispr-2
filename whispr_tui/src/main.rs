@@ -1,21 +1,23 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use base64::{Engine as _, engine::general_purpose};
 use tokio::sync::{Mutex, mpsc};
 use whispr_core::{LibError, cryptography::ed25519::generate_new_pair, models::Verification::Signature, protocols::get_identity};
 
-use crate::models::{DisplayMessage, GeneralMessage::{self, Text}, InternalMessage, OutboundMessage, State};
+use crate::{debug::start_debug_chat, models::{DisplayMessage, GeneralMessage::{self, Text}, InternalMessage, OutboundMessage, State}};
 
 mod models;
 mod handler;
+mod debug;
 
 #[tokio::main]
 async fn main() {
 
     let identity = get_identity(generate_new_pair().0).expect("error getting identity");
     if cfg!(debug_assertions) {
-        println!("fingerprint: {:?}", &identity.fingerprint.to_vec());
-        println!("ed25519 public: {:?}", &identity.public.as_bytes());
-        println!("x25519 public: {:?}", &identity.x25519_public.as_bytes());
+        println!("fingerprint: {:?}", general_purpose::STANDARD.encode(&identity.fingerprint.to_vec()));
+        println!("ed25519 public: {:?}", general_purpose::STANDARD.encode(&identity.public.as_bytes()));
+        println!("x25519 public: {:?}", general_purpose::STANDARD.encode(&identity.x25519_public.as_bytes()));
     }
     let state: Arc<models::State> = Arc::new(State{ identity: identity, history: Mutex::new(HashMap::new()), peers: Mutex::new(HashMap::new())});
     let pointer = Arc::clone(&state);
@@ -37,7 +39,9 @@ async fn main() {
             payload: postcard::to_stdvec(&GeneralMessage::Text("Hello, world!".to_string())).map_err(|e| LibError::SerializationError(e.to_string())).unwrap()
         }));
         let _ = tokio::time::sleep(Duration::from_millis(50)).await;
-        assert_eq!(*state.history.lock().await.get(&state.identity.fingerprint).unwrap().last().unwrap(), DisplayMessage { is_verified: Signature(true), payload: Text("Hello, world!".to_string()) })
+        assert_eq!(*state.history.lock().await.get(&state.identity.fingerprint).unwrap().last().unwrap(), DisplayMessage { is_verified: Signature(true), payload: Text("Hello, world!".to_string()) });
+        let pointer = Arc::clone(&state);
+        let _ = start_debug_chat(connection_tx.clone(), pointer).await;
     }
 
     tokio::signal::ctrl_c().await.unwrap();
