@@ -1,6 +1,7 @@
 ## Tasks:
 ### Pre-MVP:
-- [ ] A working client backend mvp
+- [x] A working client backend mvp
+- [x] A working basic interface (proof of concept UI)
 - [ ] A working TUI for the client, including devtools for debugging and extensive logs
 - [ ] A defense against replay attacks inside the server-client identification (challenge based?)
 
