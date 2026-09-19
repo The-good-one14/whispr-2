@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use base64::engine::general_purpose;
 use base64::{Engine as _};
-use ed25519_dalek::{PUBLIC_KEY_LENGTH, VerifyingKey};
+use ed25519_dalek::VerifyingKey;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
 use tokio::sync::mpsc;
 use whispr_core::LibError;
